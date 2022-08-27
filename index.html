@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script type="module">
+    //init(animate) to restart animation
+    //tick(context) to animate 1 frame
+    //generate_picture(context, points, lineWidth, getColor) to generate a frame
+    //getColor(x, y) takes a position and returns a color
+
+
+    //d3-Delaunay used for generation of Voronoi diagram
+    import * as d3 from "https://cdn.skypack.dev/d3@7";
+    
+    const animate = false;
+    const w = window.innerWidth;
+    const h = (w * 9) / 16;
+    const width = w;
+    const height = h;
+    const canvas = document.createElement("canvas"); 
+    const context = canvas.getContext("2d"); // DOM.context2d(width, height);
+    canvas.width = w;
+    canvas.height = h;
+    var points = [];
+    var velocity = [];
+    var ticker=0;
+    function init(animate=animate)
+    {
+        //const points = Array(100).fill().map((_, i) => ({ x: (i * w) / 100, y: Math.random() * h }));
+        points = Array(100).fill().map((_, i) => ({x: Math.floor(i/10)*w/10+Math.random()*w/10, y: (i%10)*h/10+Math.random()*h/10})); // initialize 100 points, each with a random position from a cell in a 10 by 10 grid. makes a more distrobuted set of points than just being random
+        velocity = Array(100).fill().map((_, i) => ({ vx: 0, vy: 0})); //initialize array of velocites (0)
+        ticker=0;
+        generate_picture(context, points, 0, getColor)
+
+        if(!animate) return;
+        setInterval(()=>{tick(context)}, 1000/60);
+    }
+
+    function tick(context=context)
+    {
+        //move points (bad algorithm)
+
+        // // find distrobution of points within grid
+        // const grid = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]];
+        // const gridId = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]];
+        // points.forEach((point, i) => {
+        //     grid[Math.floor(point.x*10/width)][Math.floor(point.y*10/height)]++;
+        // })
+        // points.forEach((point, i) => {
+        //     var x = Math.floor(point.x*10/width);
+        //     var y = Math.floor(point.y*10/height);
+        //     console.log(x, y);
+        //     if(x != 10 && grid[x+1][y] == 0) v[i].vx += 0.01;
+        //     else if(x != 0 && grid[x-1][y] == 0) v[i].vx -= 0.01;
+        //     else if(y != 10 && grid[x][y+1] == 0) v[i].vx += 0.01;
+        //     else if(y != 0 && grid[x][y-1] == 0) v[i].vx -= 0.01;
+            
+        // })
+        // points.forEach((point, i) =>
+        // {
+        //     points.forEach((point2, i2) =>
+        //     {
+        //         //console.log(point2.x - point.x)
+        //         if(point2.x - point.x < width/100 && point2.x - point.x > 0) points[i2].x += 0.1;
+        //         if(point2.x - point.x > -width/100 && point2.x - point.x < 0) points[i2].x -= 0.1; 
+        //         if(point2.y - point.y < height/100 && point2.y - point.y > 0) points[i2].y += 0.1; 
+        //         if(point2.y - point.y > -height/100 && point2.y - point.y < 0) points[i2].y -= 0.1;
+        //          if(point2.x < 0) point2.x = 0
+        //          if(point2.y < 0) point2.y = 0
+        //          if(point2.x > width) point2.x = width
+        //          if(point2.y > height) point2.y = height
+        //     })
+        // })
+        // let n = 0;
+        // grid.forEach(row => row.forEach(m => m!=1 ? n++ : n=n))
+        // console.log(n, grid);
+
+        //change position of points (best but bad algorithm)
+        points.forEach((point, i) => {
+            var p = velocity[i];
+            point.x += p.vx; if (point.x < 0) point.x = p.vx *= -1; else if (point.x > width) point.x = width + (p.vx *= -1);
+            point.y += p.vy; if (point.y < 0) point.y = p.vy *= -1; else if (point.y > height) point.y = height + (p.vy *= -1);
+            p.vx += 0.1 * (Math.random() - .5) - 0.1 * p.vx;
+            p.vy += 0.1 * (Math.random() - .5) - 0.1 * p.vy;
+            points[i] = point;
+        })
+
+        generate_picture(context, points, 0, getColor)
+        ticker++;
+        //console.log(ticker)
+    }
+
+    function getColor(x, y)
+    {
+        return(`#${("0" + Math.round(x*255/width).toString(16)).slice(-2)}00${("0" + (255-Math.round(x*255/width)).toString(16)).slice(-2)}`)
+    }
+
+    function generate_picture(context = context, points = points, lineWidth = 1.5, getColor = getColor)
+    {
+        const voronoi = d3.Delaunay.from(
+            points,
+            (d) => d.x,
+            (d) => d.y
+        ).voronoi([0, 0, w, h]);
+
+        context.clearRect(0, 0, w, h);
+        
+
+        const segments = voronoi.render().split(/M/).slice(1);
+        const polygons = voronoi.cellPolygons();
+        console.log(segments, polygons)
+        let i = 0;
+        // draw polygons
+        context.lineWidth = 0;
+        for(const e of polygons)
+        {
+            context.beginPath();
+            const poly = voronoi.renderCell(i, context);
+            const style = getColor(points[i].x, points[i].y);
+            context.fillStyle = style;
+            context.strokeStyle = style;
+            context.fill(poly)
+            i++
+
+            context.beginPath();
+            var path = new Path2D("M" + e)
+            context.stroke(path);
+        }
+        //draw lines
+        context.lineWidth = lineWidth;
+        if(lineWidth != 0)
+        {
+            for (const e of segments) {
+                context.fillStyle = 'black';
+                context.strokeStyle = "black";
+                context.beginPath();
+                //context.strokeStyle = d3.hsl(360 * Math.random(), 0.7, 0.5);
+                var path = new Path2D("M" + e)
+                context.stroke(path);
+            }
+        }
+        context.fillStyle = "black";
+        context.beginPath();
+        //voronoi.delaunay.renderPoints(context, 1); // draw points
+        context.fill();
+        document.querySelector("#app").appendChild(canvas);
+    }
+    init(animate);
+</script>
+<div id="app"></div>
+
